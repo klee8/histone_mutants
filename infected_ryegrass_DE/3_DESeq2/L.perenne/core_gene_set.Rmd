@@ -1,0 +1,123 @@
+---
+title: "core_gene_set"
+author: "Kate"
+date: "10 April 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#install.packages("tidyverse")
+library("tidyverse")
+#install.packages("seqinr")
+library("seqinr")
+```
+
+
+Take in results from setB mutant vs WT and clrD mutant vs WT
+```{r get_data}
+setB <- read.delim("result_tables/L.perenne_setB_WT.txt", header = TRUE)
+clrD <- read.delim("result_tables/L.perenne_clrD_WT.txt", header = TRUE)
+
+```
+
+
+```{r merge_data}
+# set colnames for each set of results
+colnames(setB) <- paste("setB", colnames(setB), sep = "_")
+colnames(clrD) <- paste("clrD", colnames(clrD), sep = "_")
+
+# merge data sets
+core_set <- merge(setB, clrD, by.x = "setB_gene_id", by.y = "clrD_gene_id")
+names(core_set)[names(core_set) == "setB_gene_id"] <- "gene_id"
+
+rownames(core_set) <- core_set$gene_id
+colnames(core_set)
+```
+
+
+```{r flag_apeglm_normalised_log2FC}
+
+# flag presence in both data sets
+targets_1up <- rownames(subset(core_set, (setB_apeglm_1_svalue <.005 & setB_apeglm_log2FC >= 1 
+                                      & clrD_apeglm_1_svalue <.005 & clrD_apeglm_log2FC >= 1  
+                                      & !is.na(setB_apeglm_log2FC) & !is.na(clrD_apeglm_log2FC) )))
+core_set$core_log2FC_1_up <- ifelse(rownames(core_set) %in% targets_1up, 1, 0)
+
+targets_2up <- rownames(subset(core_set, (setB_apeglm_2_svalue <.005 & setB_apeglm_log2FC >= 2 
+                                      & clrD_apeglm_2_svalue <.005 & clrD_apeglm_log2FC >= 2  
+                                      & !is.na(setB_apeglm_log2FC) & !is.na(clrD_apeglm_log2FC) )))
+core_set$core_log2FC_2_up <- ifelse(rownames(core_set) %in% targets_2up, 1, 0)
+
+targets_1down <- rownames(subset(core_set, (setB_apeglm_1_svalue <.005 & setB_apeglm_log2FC <= -1 
+                                      & clrD_apeglm_1_svalue <.005 & clrD_apeglm_log2FC <= -1  
+                                      & !is.na(setB_apeglm_log2FC) & !is.na(clrD_apeglm_log2FC) )))
+core_set$core_log2FC_1_down <- ifelse(rownames(core_set) %in% targets_1down, 1, 0)
+
+targets_2down <- rownames(subset(core_set, (setB_apeglm_2_svalue <.005 & setB_apeglm_log2FC <= -2
+                                      & clrD_apeglm_2_svalue <.005 & clrD_apeglm_log2FC <= -2 
+                                      & !is.na(setB_apeglm_log2FC) & !is.na(clrD_apeglm_log2FC) )))
+core_set$core_log2FC_2_down <- ifelse(rownames(core_set) %in% targets_2down, 1, 0)
+
+```
+
+
+
+# Graph overlaps with UpSetR package
+```{r UpSet_diagram_apeglm_normalised_results}
+#install.packages("UpSetR")
+library(UpSetR)
+
+rownames(core_set) <- core_set$gene_id
+
+listInput <- list(clrD_2Fold_up = rownames(core_set[core_set$clrD_apeglm_log2FC >= 1 & core_set$clrD_apeglm_1_svalue < 0.005 & !is.na(core_set$clrD_apeglm_log2FC), ]),
+                  clrD_4Fold_up = rownames(core_set[core_set$clrD_apeglm_log2FC >= 2 & core_set$clrD_apeglm_2_svalue < 0.005 & !is.na(core_set$clrD_apeglm_log2FC), ]),
+                  setB_2Fold_up = rownames(core_set[core_set$setB_apeglm_log2FC >= 1 & core_set$setB_apeglm_1_svalue < 0.005 & !is.na(core_set$setB_apeglm_log2FC), ]),
+                  setB_4Fold_up = rownames(core_set[core_set$setB_apeglm_log2FC >= 2 & core_set$setB_apeglm_2_svalue < 0.005 & !is.na(core_set$setB_apeglm_log2FC), ]),
+                  
+                  clrD_2Fold_down = rownames(core_set[core_set$clrD_apeglm_log2FC <= -1 & core_set$clrD_apeglm_1_svalue < 0.005 & !is.na(core_set$clrD_apeglm_log2FC), ]),
+                  clrD_4Fold_down = rownames(core_set[core_set$clrD_apeglm_log2FC <= -2 & core_set$clrD_apeglm_2_svalue < 0.005 & !is.na(core_set$clrD_apeglm_log2FC), ]),
+                  setB_2Fold_down = rownames(core_set[core_set$setB_apeglm_log2FC <= -1 & core_set$setB_apeglm_1_svalue < 0.005 & !is.na(core_set$setB_apeglm_log2FC), ]),
+                  setB_4Fold_down = rownames(core_set[core_set$setB_apeglm_log2FC <= -2 & core_set$setB_apeglm_2_svalue < 0.005 & !is.na(core_set$setB_apeglm_log2FC), ]),
+                  
+                  core_2Fold_up = rownames(core_set[core_set$core_log2FC_1_up == 1 & !is.na(core_set$setB_apeglm_log2FC), ]),
+                  core_4Fold_up = rownames(core_set[core_set$core_log2FC_2_up == 1 & !is.na(core_set$setB_apeglm_log2FC), ]),
+                  core_2Fold_down = rownames(core_set[core_set$core_log2FC_1_down == 1 & !is.na(core_set$setB_apeglm_log2FC), ]),
+                  core_4Fold_down = rownames(core_set[core_set$core_log2FC_2_down == 1 & !is.na(core_set$setB_apeglm_log2FC), ])
+                  )
+
+intersect(listInput$core_4Fold_up,listInput$core_4Fold_down )
+
+pdf("plots/UpSet_core_set.pdf", onefile = FALSE)
+upset(fromList(listInput), sets = c("core_2Fold_down", "core_4Fold_down", "core_2Fold_up", "core_4Fold_up"), keep.order = TRUE, order.by = "freq")
+dev.off()
+
+sets <- names(listInput)
+colors <- c("blue", "blue", "blue", "blue", "blue", "blue", "purple", "purple", "purple", "purple", "purple", "purple")
+metadata <- as.data.frame(cbind(sets, colors))
+
+set_colors <- c(setB_2Fold_down = "darkcyan",  clrD_2Fold_down = "darkcyan", setB_4Fold_down = "darkcyan", clrD_4Fold_down = "darkcyan",  core_2Fold_down = "darkblue", core_4Fold_down = "darkblue", setB_2Fold_up = "purple", clrD_2Fold_up = "purple", setB_4Fold_up = "purple", clrD_4Fold_up = "purple", core_2Fold_up = "red", core_4Fold_up = "red")    
+
+pdf("plots/UpSet_all_FC_data.pdf", onefile = FALSE)
+upset(fromList(listInput), sets = c("setB_2Fold_down", "setB_4Fold_down", "clrD_2Fold_down", "clrD_4Fold_down", "core_2Fold_down", "core_4Fold_down", "setB_2Fold_up", "setB_4Fold_up", "clrD_2Fold_up", "clrD_4Fold_up", "core_2Fold_up", "core_4Fold_up"), keep.order = TRUE, order.by = "freq",set.metadata = list(data = metadata, 
+                          plots = list(list(type = "matrix_rows", column = "sets", colors = set_colors, alpha = 0.5))))
+dev.off()
+
+```
+
+```{r add_annoatations}
+
+EST_names <- read.delim("../../2_salmon/transcriptome/L.perenne/EST.headers.txt", header = FALSE, sep = " ", stringsAsFactors = FALSE)
+colnames(EST_names) <- c("EST_id", "gene_id")
+core_set <- merge(core_set, EST_names, by = "gene_id")
+
+ann <- read.delim("../../Pierres_annotations/nph13614-sup-0002-tables1.csv", header = TRUE, sep = "\t", stringsAsFactors = FALSE, skip = 2)
+core_set <- merge(core_set, ann, by.x = "EST_id", by.y = "Identifier")
+core_set$X <- NULL
+core_set$X.1 <- NULL
+
+str(core_set)
+colnames(core_set)
+
+write.table(core_set, "result_tables/L.perenne_core_gene_set.txt", quote = FALSE, row.names = FALSE, sep = "\t")
+```
