@@ -1,0 +1,8 @@
+E.festucae_Fl1  MGS	MiSeq run_1	Lane1	CULT_8	3DP_CULT	SRR7640308	WT_CULT
+E.festucae_Fl1	MGS	MiSeq	run_1	Lane1	CULT_9	3DP_CULT	SRR7640309	WT_CULT
+E.festucae_Fl1	MGS	NovaSeq run_2	Lane1	3DP_1	3DP_CULT	W4_1	WT_3DP
+E.festucae_Fl1	MGS	NovaSeq	run_2	Lane2	3DP_1	3DP_CULT	W4_2	WT_3DP
+E.festucae_Fl1	MGS	NovaSeq	run_2	Lane1	3DP_2	3DP_CULT	W5_1	WT_3DP
+E.festucae_Fl1	MGS	NovaSeq	run_2	Lane2	3DP_2	3DP_CULT	W5_2	WT_3DP
+E.festucae_Fl1	MGS	NovaSeq	run_2	Lane1	3DP_3	3DP_CULT	W6_1	WT_3DP
+E.festucae_Fl1	MGS	NovaSeq	run_2	Lane2	3DP_3	3DP_CULT	W6_2	WT_3DP
