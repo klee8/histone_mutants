@@ -1,3 +1,0 @@
-L.perenne	clrD	WT
-L.perenne	setB	WT
-L.perenne	WT	mock
