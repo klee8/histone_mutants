@@ -296,34 +296,11 @@ ID genes that are over 2 fold change that are close to one another
 res$gene_id <- rownames(res)
 all_results <- as.data.frame(res)
 
-# extract normalised counts
-#normalized_counts <- as.data.frame(counts(dds, normalized=TRUE))
-#normalized_counts$gene_id <- rownames(normalized_counts)
-
-# merge in mean normalised count data
-# i.e. group colnames by config file 'condition' and get average count data.
-#conditions <- as.vector(unique(samples$condition))
-#mean_counts <- sapply(conditions, function(x) as.integer(rowMeans(normalized_counts[,colnames(normalized_counts) %in%
-#                                                    as.vector(unique(samples[samples$condition == x, "sample"]))], na.rm=TRUE)))
-#colnames(mean_counts) <- paste(colnames(mean_counts), "norm_counts", sep = "_")
-#mean_counts<- as.data.frame(base::cbind(gene_id = normalized_counts$gene_id, mean_counts, deparse.level = 0))
-#all_results <- merge(all_results, mean_counts, by="gene_id")
-
-# merge in mean fpkm count data from DESEQ2
-#fpkm_counts <- as.data.frame(fpkm(dds))
-#fpkm_counts$gene_id <- rownames(fpkm_counts)
-#mean_fpkm <- sapply(conditions, function(x) as.integer(rowMeans(fpkm_counts[,colnames(fpkm_counts) %in%
-#                                                    as.vector(unique(samples[samples$condition == x, "sample"]))], na.rm=TRUE)))
-#colnames(mean_fpkm) <- paste(colnames(mean_fpkm), "fpkm", sep = "_")
-#mean_fpkm <- as.data.frame(base::cbind(gene_id = fpkm_counts$gene_id, mean_fpkm, deparse.level = 0))
-#all_results <- merge(all_results, mean_fpkm, by="gene_id")
-
 # merge data after apeglm shrinkage 
 resApeT_thresh1$gene_id <- rownames(resApeT_thresh1)
 resApeT_thresh2$gene_id <- rownames(resApeT_thresh2)
 all_apeglmT <- merge(as.data.frame(resApeT_thresh1), as.data.frame(resApeT_thresh2), by = "gene_id")
 all_results <- merge(all_results, all_apeglmT, by = "gene_id")
-
 
 # merge TPM from salmon
 all_results <- merge(all_results, salmon_TPM, by = "gene_id")
@@ -332,11 +309,22 @@ goi <- all_results %>% select(gene_id, apeglm_1_log2FC, apeglm_1_lfcSE, apeglm_1
 colnames(goi) <- c("gene_id", "3DPvCULT_apeglm_log2FC", "3DPvCULT_apeglm_lfcSE", "3DPvCULT_apeglm_1_svalue", "3DPvCULT_apeglm_2_svalue", "mean_WT_3DP_TPM", "mean_WT_CULT_TPM")
 head(goi)
 
-
-
-
 write.table(goi, "result_tables/E.festucae_Fl1_v3_WT_3DP_vs_WT_CULT.txt", quote = FALSE, row.names = FALSE, sep = "\t")
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ################  ARCHIVE
 
