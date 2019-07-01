@@ -1,0 +1,38 @@
+---
+title: "biotic.stress.response.Rmd"
+author: "Kate Lee"
+date: "01/07/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+AIM: Look at overlaps of DE genes, get mercator annotations for them, see what is enriched in the genes that are upregulated in WT vs mock and downregulated in mutant vs WT.
+
+```{r get_data}
+
+mercator <- read.delim("Mercator7bd6ef021f358be394f1b54d846f7d96Result/mercator.results.txt", header = TRUE, sep = "\t")
+merc <- mercator
+merc <- mutate(mercator, broad_bin = gsub("\\..*", "", merc$BINCODE))
+merc[] <- lapply(merc, function(x) gsub("\\'", "", x))
+merc$broad_bin <- as.factor(merc$broad_bin)
+merc <- mutate(merc, mgene = ifelse(grepl("m\\.\\d*", merc$IDENTIFIER), "mgene", "other"))
+mgene_merc <- merc[(merc$mgene != "other"), c("broad_bin","BINCODE", "IDENTIFIER", "NAME", "DESCRIPTION")]
+mgene_merc$IDENTIFIER <- as.factor(mgene_merc$IDENTIFIER)
+mgene_merc$dup <- sum(mgene_merc$IDENTIFIER == mgene_merc$IDENTIFIER)
+broad <- mgene_merc %>% group_by(IDENTIFIER, broad_bin) %>% tally()
+dup <- mgene_merc %>% group_by(IDENTIFIER) %>% tally()
+merge(broad, dup, by = "IDENTIFIER", all = TRUE)
+
+
+######################################## QUESTION : how do you classify things that are found across multiple broad bins e.g. m.100179 is in bin 16 and 26 #############################################
+str(merc)
+str(mgene_merc)
+head(mgene_merc)
+head(merc)
+write.table(mgene_merc, "temp.txt", quote = FALSE, row.names = FALSE, sep = "\t")
+
+```
