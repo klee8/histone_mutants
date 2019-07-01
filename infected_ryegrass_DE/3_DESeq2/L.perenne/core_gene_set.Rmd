@@ -111,6 +111,16 @@ EST_names <- read.delim("../../2_salmon/transcriptome/L.perenne/EST.headers.txt"
 colnames(EST_names) <- c("EST_id", "gene_id")
 core_set <- merge(core_set, EST_names, by = "gene_id")
 
+mock <- read.delim("../L.perenne/result_tables/L.perenne_WT_mock.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+# highlight significant fold changes
+mock <- mock %>% mutate(mock_FC_2_up = ifelse(apeglm_log2FC >= 1 & apeglm_1_svalue < 0.005 & !is.na(apeglm_log2FC), 1, 0),
+               mock_FC_4_up = ifelse(apeglm_log2FC >= 2 & apeglm_2_svalue < 0.005 & !is.na(apeglm_log2FC), 1, 0),
+               mock_FC_2_down = ifelse(apeglm_log2FC <= -1 & apeglm_1_svalue < 0.005 & !is.na(apeglm_log2FC), 1, 0),
+               mock_FC_4_down = ifelse(apeglm_log2FC <= -2 & apeglm_2_svalue < 0.005 & !is.na(apeglm_log2FC),1, 0))
+colnames(mock) <- c("gene_id", "WTmock_apeglm_log2FC", "WTmock_apeglm_lfcSE", "WTmock_apeglm_1_svalue", "WTmock_apeglm_2_svalue", "mean_mock_TPM", "mean_WT_TPM", "mock_FC_2_up", "mock_FC_4_up", "mock_FC_2_down", "mock_FC_4_down")
+mock$mean_WT_TPM <- NULL
+core_set <- merge(core_set, mock, by = "gene_id")
+
 ann <- read.delim("../../Pierres_annotations/nph13614-sup-0002-tables1.csv", header = TRUE, sep = "\t", stringsAsFactors = FALSE, skip = 2)
 core_set <- merge(core_set, ann, by.x = "EST_id", by.y = "Identifier")
 core_set$X <- NULL
@@ -121,3 +131,4 @@ colnames(core_set)
 
 write.table(core_set, "result_tables/L.perenne_core_gene_set.txt", quote = FALSE, row.names = FALSE, sep = "\t")
 ```
+
