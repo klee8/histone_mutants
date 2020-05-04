@@ -209,7 +209,7 @@ while (!is.null(dev.list()))  dev.off()
 If you never tell the DESeq2 functions which level you want to compare against (e.g. which level represents the control group), the comparisons will be based on the alphabetical order of the levels. Here just set the reference condition to wild type
 ```{r set_ref_condition}
 
-dds$condition <- relevel(dds$condition, ref = "mock")
+dds$condition <- relevel(dds$condition, ref = "WT")
 ```
 
 # DESeq consists of three steps
@@ -236,7 +236,7 @@ head(res)
 
 ```{r plot_top_siz_diffs}
 
-pdf("plots/WT_vs_mock_top_DE_genes.pdf" )
+pdf("plots/mock_vs_WT_top_DE_genes.pdf" )
 top_counts <- rownames(res)
 par(mfrow=c(2,3))
 plotCounts(dds, gene=top_counts[1], intgroup="condition")
@@ -249,7 +249,7 @@ dev.off()
 ```
 
 ```{r plot_dispersions}
-pdf("plots/WT_vs_mock_plot_dispersions.pdf", onefile = FALSE)
+pdf("plots/mock_vs_WT_plot_dispersions.pdf", onefile = FALSE)
 plotDispEsts(dds)
 dev.off()
 ```
@@ -262,7 +262,7 @@ resApeT_thresh1  <- lfcShrink(dds, coef="condition_WT_vs_mock", type="apeglm", l
 resApeT_thresh2  <- lfcShrink(dds, coef="condition_WT_vs_mock", type="apeglm", lfcThreshold = 2)
 
 
-pdf("plots/WT_vs_mock_apeglm_shrinkage_MA_plot.pdf", onefile = FALSE)
+pdf("plots/mock_vs_WT_apeglm_shrinkage_MA_plot.pdf", onefile = FALSE)
 drawLines <- function() abline(h=c(-2,2),col="dodgerblue",lwd=2)
 plotMA(resApeT_thresh2, ylim=c(-8,8), cex=.8); drawLines()
 dev.off()
@@ -274,7 +274,7 @@ colnames(resApeT_thresh2)  <- c("baseMean", "apeglm_2_log2FC", "apeglm_2_lfcSE",
 
 ```{r volcano_plot}
 
-pdf("plots/WT_vs_mock_volcano_plot.pdf", onefile = FALSE)
+pdf("plots/mock_vs_WT_volcano_plot.pdf", onefile = FALSE)
 
 #reset par
 par(mfrow=c(1,1))
@@ -312,7 +312,7 @@ goi <- all_results %>% select(gene_id, apeglm_log2FC, apeglm_lfcSE, apeglm_1_sva
 
 
 
-write.table(goi, "result_tables/L.perenne_WT_mock.txt", quote = FALSE, row.names = FALSE, sep = "\t")
+write.table(goi, "result_tables/L.perenne_mock_WT.txt", quote = FALSE, row.names = FALSE, sep = "\t")
 ```
 
 
@@ -337,7 +337,7 @@ goi$X.1 <- NULL
 
 head(goi)
 
-write.table(goi, "result_tables/L.perenne_WT_mock_annotated.txt", quote = FALSE, row.names = FALSE, sep = "\t")
+write.table(goi, "result_tables/L.perenne_mock_vs_WT_annotated.txt", quote = FALSE, row.names = FALSE, sep = "\t")
 ```
 
 
@@ -347,218 +347,5 @@ write.table(goi, "result_tables/L.perenne_WT_mock_annotated.txt", quote = FALSE,
 
 
 
-
-
-
-
-
-
-################  ARCHIVE
-
-```{r look_at_dds, eval=FALSE, include=FALSE}
-
-# re-set dds
-dds <- DESeqDataSetFromTximport(txi,
-                                   colData = samples,
-                                   design = ~ condition)
-# collapse technical replicates
-dds <- collapseReplicates(dds, groupby = samples$sample, run = samples$run, renameCols = TRUE)
-
-assays(dds)
-head(assays(dds)[["counts"]])   # from Tximport
-head(assays(dds)[["avgTxLength"]])  # from Tximport
-
-dds <- estimateSizeFactors(dds)
-assays(dds)
-head(assays(dds)[["normalizationFactors"]])  # from estimateSizeFactors
-
-# extract normalised counts
-normalized_counts <- as.data.frame(counts(dds, normalized=TRUE))
-normalized_counts$gene_id <- rownames(normalized_counts)
-head(normalized_counts)
-
-dds <- estimateDispersions(dds)
-assays(dds)
-head(assays(dds)[["mu"]])   # from estimateDispersions
-
-dds <- nbinomWaldTest(dds)
-assays(dds)
-head(assays(dds)[["H"]])    # from nbinomWaldTest (hat matrix diagonals)
-head(assays(dds)[["cooks"]])   # from nbinomWaldTest (cooks distance - identifies samples that are outliers if there are three or more samples. DESeq will automatically act on this information if there are 7 or more samples/biological replicates)
-# note TPM is not taken in by DESeq and is only available prior to technical replicate collapse
-```
-
-
-filter out data with less than 10 read counts - skip this, Barry and Daniel want to see reads that are present in one sample and not in another (most of the secondary metabolites show this pattern)
-```{r filter_out_low_counts, eval=FALSE, include=FALSE}
-
-#keep <- rowSums(counts(dds)) >= 10
-#dds <- dds[keep,]
-```
-
-```{r check_normalisation, eval=FALSE, include=FALSE}
-
-head(normalizationFactors(dds))
-head(assays(dds)[["avgTxLength"]])   # gene level normalisation for length, hex primer and (beta) gc content
-head(assays(dds)[["mu"]])            # dispersion level between samples of the same condition
-head(counts(dds))
-head(counts(dds, normalized = TRUE))
-
-#7411.1042*0.9524896      # normalised count X normalisation factor = raw count
-```
-
-look at effects of shrinkage
-```{r effects_of_apeglm_shrinkage, eval=FALSE, include=FALSE}
-#if (!requireNamespace("BiocManager", quietly = TRUE))
-#    install.packages("BiocManager")
-#BiocManager::install("apeglm", version = "3.8")
-library(apeglm)
-
-resultsNames(dds)
-
-resGA <- results(dds, lfcThreshold=2, altHypothesis="greaterAbs")
-resApeT <- lfcShrink(dds, coef=2, type="apeglm", lfcThreshold = 2)
-
-resGA
-resApeT
-
-
-pdf("plots/clrD_vs_wt_apeglm_shrinkage_MA_plot.pdf", onefile = FALSE)
-par(mfrow=c(2,1),mar=c(2,2,1,1))
-drawLines <- function() abline(h=c(-2,2),col="dodgerblue",lwd=2)
-plotMA(resGA, ylim=c(-8,8), cex=.8); drawLines()
-plotMA(resApeT, ylim=c(-8,8), cex=.8); drawLines()
-dev.off()
-```
-
-```{r alt_hypothesis, eval=FALSE, include=FALSE}
-
-par(mfrow=c(2,2),mar=c(2,2,1,1))
-ylim <- c(-4,4)
-resGA <- results(dds, lfcThreshold=2, altHypothesis="greaterAbs")
-resLA <- results(dds, lfcThreshold=2, altHypothesis="lessAbs")
-resG <- results(dds, lfcThreshold=2, altHypothesis="greater")
-resL <- results(dds, lfcThreshold=2, altHypothesis="less")
-drawLines <- function() abline(h=c(-.5,.5),col="dodgerblue",lwd=2)
-plotMA(resGA, ylim=ylim); drawLines()
-plotMA(resLA, ylim=ylim); drawLines()
-plotMA(resG, ylim=ylim); drawLines()
-plotMA(resL, ylim=ylim); drawLines()
-```
-
-Visualise counts in a heat map
-```{r heat_map_of_count_matrix, eval=FALSE, include=FALSE}
-rld <- rlog(dds, blind=FALSE)
-library("pheatmap")
-select <- order(rowMeans(counts(dds,normalized=TRUE)),
-                decreasing=TRUE)[1:20]
-df <- as.data.frame(colData(dds)[,c("sample", "condition")])
-pheatmap(assay(rld)[select,], cluster_rows=FALSE, show_rownames=FALSE,
-         cluster_cols=FALSE, annotation_col=df)
-```
-
-```{r add_raw_count_data, eval=FALSE, include=FALSE}
-# merge in count data from counts(dds) <<<<<<<<  found some high log2 fold results that came from very low counts in one or two samples
-count_data <- as.data.frame(counts(dds))
-count_data$gene_id <- rownames(count_data)
-group colnames by config file 'condition' and get average.
-conditions <- as.vector(unique(samples$condition))
-mean_counts <- sapply(conditions, function(x) as.integer(rowMeans(count_data[,colnames(count_data) %in%
-                                                    as.vector(unique(samples[samples$condition == x, "sample"]))], na.rm=TRUE)))
-colnames(mean_counts) <- paste(colnames(mean_counts), "counts", sep = "_")
-mean_counts <- as.data.frame(base::cbind(gene_id = count_data$gene_id, mean_counts, deparse.level = 0))
-all_results <- merge(all_results, mean_counts, by="gene_id")
-
-```
-
-```{r add_DESeq2_normalised_count_data}
-
-# extract normalised counts
-normalized_counts <- as.data.frame(counts(dds, normalized=TRUE))
-normalized_counts$gene_id <- rownames(normalized_counts)
-
-# merge in mean normalised count data
-# i.e. group colnames by config file 'condition' and get average count data.
-conditions <- as.vector(unique(samples$condition))
-mean_counts <- sapply(conditions, function(x) as.integer(rowMeans(normalized_counts[,colnames(normalized_counts) %in%
-                                                    as.vector(unique(samples[samples$condition == x, "sample"]))], na.rm=TRUE)))
-colnames(mean_counts) <- paste(colnames(mean_counts), "norm_counts", sep = "_")
-mean_counts<- as.data.frame(base::cbind(gene_id = normalized_counts$gene_id, mean_counts, deparse.level = 0))
-all_results <- merge(all_results, mean_counts, by="gene_id")
-```
-
-```{r merge_fpkm, eval=FALSE, include=FALSE}
-
-# merge in mean fpkm count data
-fpkm_counts <- as.data.frame(fpkm(dds))
-fpkm_counts$gene_id <- rownames(fpkm_counts)
-fpkm_counts
-mean_fpkm <- sapply(conditions, function(x) as.integer(rowMeans(fpkm_counts[,colnames(fpkm_counts) %in%
-                                                    as.vector(unique(samples[samples$condition == x, "sample"]))], na.rm=TRUE)))
-colnames(mean_fpkm) <- paste(colnames(mean_fpkm), "fpkm", sep = "_")
-mean_fpkm <- as.data.frame(base::cbind(gene_id = fpkm_counts$gene_id, mean_fpkm, deparse.level = 0))
-all_results <- merge(all_results, mean_fpkm, by="gene_id")
-```
-
-```{r merge_DESeq_normalised_counts, eval=FALSE, include=FALSE}
-
-# extract normalised counts
-normalized_counts <- as.data.frame(counts(dds, normalized=TRUE))
-normalized_counts$gene_id <- rownames(normalized_counts)
-
-# merge in mean normalised count data
-# i.e. group colnames by config file 'condition' and get average count data.
-conditions <- as.vector(unique(samples$condition))
-mean_counts <- sapply(conditions, function(x) as.integer(rowMeans(normalized_counts[,colnames(normalized_counts) %in%
-                                                    as.vector(unique(samples[samples$condition == x, "sample"]))], na.rm=TRUE)))
-colnames(mean_counts) <- paste(colnames(mean_counts), "norm_counts", sep = "_")
-mean_counts<- as.data.frame(base::cbind(gene_id = normalized_counts$gene_id, mean_counts, deparse.level = 0))
-all_results <- merge(all_results, mean_counts, by="gene_id")
-```
-
-```{r flag_significant_results, eval=FALSE, include=FALSE}
-
-# flag results that have an adjusted pvalue less than .01 and a log2FoldChange >1
-targets <- rownames(subset(GOI, padj<.01 & abs(log2FoldChange)>=1 & !is.na(log2FoldChange) ))
-GOI$log2FC_1 <- ifelse(rownames(GOI) %in% targets, 1, 0)
-
-# flag results that have an adjusted pvalue less than .01 and a log2FoldChange >2
-targets <- rownames(subset(GOI, padj<.01 & abs(log2FoldChange)>=2 & !is.na(log2FoldChange) ))
-GOI$log2FC_2 <- ifelse(rownames(GOI) %in% targets, 1, 0)
-```
-
-```{r add_annotations, eval=FALSE, include=FALSE}
-
-# do this after defining core gene set
-
-##### GET ANNOTATIONS FROM GFF3 FILE
-positions <- read.delim("../../0_raw_data/genome/EfeFl.gff3", header = FALSE, comment.char = "#", blank.lines.skip = TRUE, fill = TRUE, sep = "\t")
-colnames(positions) <- c("seqid", "source", "type", "start", "end", "score", "strand", "phase", "attributes")
-
-# select out mRNA (these are the ones with product described)
-mRNA <- positions[positions$type == "mRNA",]
-
-# split attributes to get c("trans_id", "gene_id", "product")
-temp <- str_split(mRNA$attributes, ";", n=3)
-df <- as.data.frame(t(as.data.frame(temp)))
-rownames(df)<-NULL
-mRNA[, c("trans_id", "gene_id", "product")] <- df
-mRNA$trans_id <- str_replace(mRNA$trans_id, "ID=", "")
-mRNA$gene_id <- str_replace(mRNA$gene_id, "Parent=", "")
-mRNA$product <- str_replace(mRNA$product, "product=", "")
-mRNA$attributes <- NULL
-mRNA$score <- NULL
-mRNA$phase <- NULL
-head(mRNA)
-all_results <- merge(tempdf, mRNA, by = "gene_id")
-
-#### GET ANNOTATIONS FROM annotations.txt file from David's funannotate pipeline file
-annotations <- read.delim("../../0_raw_data/genome/EfeFl_annotations.txt", header = TRUE, comment.char = "#", blank.lines.skip = TRUE, fill = TRUE, sep = "\t")
-head(positions)
-
-# merge DESeq output (res) and GFF3 data for mRNA (where the annotations are)
-all_results <- merge(tempdf, annotations, by.x = "gene_id", by.y = "GeneID")
-
-```
 
 
